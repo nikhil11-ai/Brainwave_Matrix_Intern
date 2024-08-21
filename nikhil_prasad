@@ -1,0 +1,137 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the dataset
+df = pd.read_csv(r"C:\Users\hp\Desktop\Sample - Superstore dataset.csv", encoding='ISO-8859-1')
+
+
+# Display the first few rows of the dataset
+print(df.head())
+
+# Check for missing values and data types
+print(df.info())
+print(df.describe())
+
+
+# Handling missing values (if any)
+df = df.dropna()  # Dropping rows with missing values
+
+# Convert date columns to datetime type
+df['Order Date'] = pd.to_datetime(df['Order Date'])
+df['Ship Date'] = pd.to_datetime(df['Ship Date'])
+
+# Remove duplicates
+df = df.drop_duplicates()
+
+# Display cleaned data summary
+print(df.info())
+
+
+# Total sales and profit by region
+sales_by_region = df.groupby('Region')['Sales'].sum().sort_values(ascending=False)
+profit_by_region = df.groupby('Region')['Profit'].sum().sort_values(ascending=False)
+
+print("Sales by Region:")
+print(sales_by_region)
+print("\nProfit by Region:")
+print(profit_by_region)
+
+# Plot Sales by Region
+plt.figure(figsize=(10, 6))
+sns.barplot(x=sales_by_region.index, y=sales_by_region.values)
+plt.title('Total Sales by Region')
+plt.ylabel('Sales')
+plt.xlabel('Region')
+plt.show()
+
+# Plot Profit by Region
+plt.figure(figsize=(10, 6))
+sns.barplot(x=profit_by_region.index, y=profit_by_region.values)
+plt.title('Total Profit by Region')
+plt.ylabel('Profit')
+plt.xlabel('Region')
+plt.show()
+
+
+# Ensure 'Order Date' is in datetime format
+df['Order Date'] = pd.to_datetime(df['Order Date'], errors='coerce')
+
+# Adding year and month columns for trend analysis
+df['Year'] = df['Order Date'].dt.year
+df['Month'] = df['Order Date'].dt.to_period('M').astype(str)
+
+# Monthly sales trend
+monthly_sales = df.groupby('Month')['Sales'].sum()
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=monthly_sales)
+plt.title('Monthly Sales Trend')
+plt.ylabel('Sales')
+plt.xlabel('Month')
+plt.xticks(rotation=45)
+plt.show()
+
+# Quarterly profit trend
+df['Quarter'] = df['Order Date'].dt.to_period('Q').astype(str)
+quarterly_profit = df.groupby('Quarter')['Profit'].sum()
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(data=quarterly_profit)
+plt.title('Quarterly Profit Trend')
+plt.ylabel('Profit')
+plt.xlabel('Quarter')
+plt.xticks(rotation=45)
+plt.show()
+
+
+# Customer segmentation using RFM (Recency, Frequency, Monetary) analysis
+import numpy as np
+
+# Calculate Recency, Frequency, and Monetary values for each customer
+rfm = df.groupby('Customer ID').agg({
+    'Order Date': lambda x: (df['Order Date'].max() - x.max()).days,
+    'Order ID': 'nunique',
+    'Sales': 'sum'
+}).reset_index()
+
+# Rename columns
+rfm.columns = ['Customer ID', 'Recency', 'Frequency', 'Monetary']
+
+# Calculate RFM score
+rfm['RFM_Score'] = (rfm['Recency'].rank(ascending=False) +
+                    rfm['Frequency'].rank(ascending=True) +
+                    rfm['Monetary'].rank(ascending=True))
+
+# Display top customers
+top_customers = rfm.sort_values('RFM_Score').head(10)
+print("Top Customers:")
+print(top_customers)
+
+
+
+# Top 10 best-selling products
+top_products = df.groupby('Product Name')['Sales'].sum().sort_values(ascending=False).head(10)
+print("Top 10 Best-Selling Products:")
+print(top_products)
+
+# Plot the top 10 best-selling products
+plt.figure(figsize=(12, 6))
+sns.barplot(x=top_products.values, y=top_products.index)
+plt.title('Top 10 Best-Selling Products')
+plt.xlabel('Sales')
+plt.ylabel('Product Name')
+plt.show()
+
+
+# Analyzing the impact of discounts on profit
+discount_impact = df.groupby('Discount')['Profit'].mean()
+
+plt.figure(figsize=(12, 6))
+sns.lineplot(x=discount_impact.index, y=discount_impact.values)
+plt.title('Impact of Discounts on Profit')
+plt.xlabel('Discount')
+plt.ylabel('Average Profit')
+plt.show()
+
+
