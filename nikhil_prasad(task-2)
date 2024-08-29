@@ -1,1 +1,121 @@
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv(r"C:\Users\hp\Desktop\sentimentdataset.csv")
+
+# Display the first few rows of the dataset
+print(df.head())
+
+# Display summary information about the dataset
+print(df.info())
+
+# Drop unnecessary columns (if any)
+df_cleaned = df.drop(columns=['Unnamed: 0.1', 'Unnamed: 0'])
+
+# Check for missing values
+print(df_cleaned.isnull().sum())
+
+# Display the first few rows after cleaning
+print(df_cleaned.head())
+
+import re
+
+# Simplified text preprocessing function
+def basic_preprocess_text(text):
+    # Convert to lowercase
+    text = text.lower()
+    # Remove special characters, numbers, and extra spaces
+    text = re.sub(r'[^a-z\s]', '', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+# Apply preprocessing to the 'Text' column
+df_cleaned['Processed_Text'] = df_cleaned['Text'].apply(basic_preprocess_text)
+
+# Display the first few rows with the processed text
+print(df_cleaned[['Text', 'Processed_Text']].head())
+
+from textblob import TextBlob
+
+# Function to calculate sentiment polarity using TextBlob
+def get_sentiment(text):
+    analysis = TextBlob(text)
+    return analysis.sentiment.polarity
+
+# Apply the function to calculate sentiment for each processed text
+df_cleaned['Sentiment_Score'] = df_cleaned['Processed_Text'].apply(get_sentiment)
+
+# Categorize the sentiment score
+def categorize_sentiment(score):
+    if score > 0:
+        return 'Positive'
+    elif score < 0:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+# Apply categorization
+df_cleaned['Sentiment_Label'] = df_cleaned['Sentiment_Score'].apply(categorize_sentiment)
+
+# Display the first few rows with sentiment scores and labels
+print(df_cleaned[['Processed_Text', 'Sentiment_Score', 'Sentiment_Label']].head())
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Plot the distribution of sentiment labels
+sns.countplot(x='Sentiment_Label', data=df_cleaned)
+plt.title('Sentiment Distribution')
+plt.show()
+
+# Convert the 'Timestamp' column to datetime (if applicable)
+df_cleaned['Timestamp'] = pd.to_datetime(df_cleaned['Timestamp'])
+
+# Plot sentiment trends over time
+plt.figure(figsize=(10, 6))
+df_cleaned.groupby(df_cleaned['Timestamp'].dt.date)['Sentiment_Score'].mean().plot()
+plt.title('Sentiment Trend Over Time')
+plt.xlabel('Date')
+plt.ylabel('Average Sentiment Score')
+plt.show()
+
+# Calculate sentiment distribution
+sentiment_counts = df_cleaned['Sentiment_Label'].value_counts()
+print("Sentiment Distribution:\n", sentiment_counts)
+
+# Plot the sentiment distribution
+sns.countplot(x='Sentiment_Label', data=df_cleaned, palette='viridis')
+plt.title('Sentiment Distribution')
+plt.xlabel('Sentiment')
+plt.ylabel('Count')
+plt.show()
+
+# Convert the 'Timestamp' column to datetime format (if not already done)
+df_cleaned['Timestamp'] = pd.to_datetime(df_cleaned['Timestamp'])
+
+# Calculate daily average sentiment score
+daily_sentiment = df_cleaned.groupby(df_cleaned['Timestamp'].dt.date)['Sentiment_Score'].mean()
+
+# Plot sentiment trend over time
+plt.figure(figsize=(12, 6))
+plt.plot(daily_sentiment.index, daily_sentiment.values, marker='o', linestyle='-')
+plt.title('Average Sentiment Trend Over Time')
+plt.xlabel('Date')
+plt.ylabel('Average Sentiment Score')
+plt.grid()
+plt.show()
+
+# Analyze sentiment by platform
+platform_sentiment = df_cleaned.groupby('Platform')['Sentiment_Score'].mean()
+print("Average Sentiment Score by Platform:\n", platform_sentiment)
+
+# Plot sentiment by platform
+plt.figure(figsize=(10, 6))
+sns.barplot(x=platform_sentiment.index, y=platform_sentiment.values, palette='coolwarm')
+plt.title('Average Sentiment Score by Platform')
+plt.xlabel('Platform')
+plt.ylabel('Average Sentiment Score')
+plt.show()
+
+
 
